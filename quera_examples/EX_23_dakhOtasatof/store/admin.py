@@ -1,7 +1,7 @@
-from django.contrib import admin
+from django.contrib import admin, messages
 from .models import Product, Address, Company, Category
 # from django.utils.html import format_html
-
+from django.db.models import F
 
 @admin.register(Address)
 class AddressAdmin(admin.ModelAdmin):
@@ -11,10 +11,32 @@ class AddressAdmin(admin.ModelAdmin):
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
+
     list_display = ['id', 'name', 'category', 'company', 'price']
     list_filter = ('company', 'category')
     sortable_by = ['price']
     list_display_links = ['id', 'name']
+
+    fieldsets = (
+        ('general_info', {
+            'fields': ('name', 'category')
+         }),
+        ('Details', {
+            'classes': ('collapse',),
+            'fields': ('company', 'price')
+        }),
+    )
+
+    actions = ['raise_price']
+
+    def raise_price(self, request, queryset):
+        new_price = queryset.update(price=F("price")+200)
+
+        self.message_user(
+            request, f"{new_price} new price for our product", messages.SUCCESS
+        )
+
+    raise_price.short_description = 'raise 2 unit to selected price'
 
 
 class ProductInline(admin.StackedInline):
@@ -29,7 +51,6 @@ class ProductInline(admin.StackedInline):
 class CategoryAdmin(admin.ModelAdmin):
     inlines = [ProductInline]
 
-
 class ProductInlineTable(admin.TabularInline):
     model = Product
 
@@ -42,6 +63,15 @@ class ProductInlineTable(admin.TabularInline):
 class CompanyAdmin(admin.ModelAdmin):
     inlines = [ProductInlineTable]
 
+    fieldsets = (
+        ('general_info', {
+            'fields': ('name', )
+         }),
+        ('Details', {
+            'classes': ('collapse',),
+            'fields': ('address', )
+        }),
+    )
 
 
 
